@@ -12,21 +12,21 @@ config = tf.ConfigProto(log_device_placement=False, allow_soft_placement=True, g
 
 tfe.enable_eager_execution(config=config)
 
-
 tf.logging.set_verbosity(tf.logging.ERROR)
 
 base_path = os.path.dirname(os.path.abspath(__file__))
 
-learning_rate = 0.001
-training_epochs = 100
-batch_size = 200
+learning_rate = 0.005
+training_epochs = 500
+batch_size = 30
 display_step = 2
 
-num_input = 2
+input_rows = 3 # 8 筆資料作為一個 timestamp
+num_input = 2 * input_rows
 
 timestamps = 3
 
-num_hidden = 32
+num_hidden = 256
 num_classes = 1
 drop_prob = 0.3
 
@@ -39,27 +39,47 @@ train_label_df = pd.read_excel(os.path.join(base_path, "data/hour_ahead/train_ou
 test_df = pd.read_excel(os.path.join(base_path, "data/hour_ahead/test_in.xlsx"))
 test_label_df = pd.read_excel(os.path.join(base_path, "data/hour_ahead/test_out.xlsx"))
 
-trainset_list   = train_df.values[:, ::2]
-testset_list    = test_df.values[:, ::2]
-trainlabel = train_label_df.values[timestamps-1:]
-testlabel  = test_label_df.values[timestamps-1:]
+trainset_list = train_df.values[:, ::2]
+testset_list  = test_df.values[:, ::2]
+
+trainlabel = list()
+testlabel = list()
+
+
+for idx, label in enumerate(train_label_df.values):
+    if idx % (input_rows * timestamps) == (input_rows * timestamps) - 1:
+        trainlabel.append(label)
+
+for idx, label in enumerate(test_label_df.values):
+    if idx % (input_rows * timestamps) == (input_rows * timestamps) - 1:
+        testlabel.append(label)
 
 trainset = list()
 testset  = list()
 
-for i in range(len(trainset_list) - (timestamps - 1)):
-    temp = list()
-    for j in range(timestamps):
-        temp += trainset_list[i + j]
-    
-    trainset.append(temp)
+temp_row = list()
+temp_data = list()
 
-for i in range(len(testset_list) - (timestamps - 1)):
-    temp = list()
-    for j in range(timestamps):
-        temp += list(testset_list[i + j])
-    
-    testset.append(temp)
+for i in range(len(trainset_list) - (len(trainset_list) % input_rows)):
+    temp_row += list(trainset_list[i])
+    if i % input_rows == input_rows - 1:
+        temp_data.append(temp_row)
+        temp_row = list()
+    if i % (input_rows * timestamps) == (input_rows * timestamps) - 1:
+        trainset.append(temp_data)
+        temp_data = list()
+
+temp_row = list()
+temp_data = list()
+
+for i in range(len(testset_list) - (len(testset_list) % input_rows)):
+    temp_row += list(testset_list[i])
+    if i % input_rows == input_rows - 1:
+        temp_data.append(temp_row)
+        temp_row = list()
+    if i % (input_rows * timestamps) == (input_rows * timestamps) - 1:
+        testset.append(temp_data)
+        temp_data = list()
 
 
 trainset = tf.data.Dataset.from_tensor_slices((trainset, trainlabel))
@@ -91,8 +111,6 @@ def RNN(x, weights, biases):
     return activate
 
 def loss_function(x, y):
-
-    print (x)
 
     logits = RNN(x, weights, biases)
 
@@ -158,7 +176,7 @@ with tf.device("/gpu:1"):
     # rmse_list = list()
     test = testset.batch(batch_size, drop_remainder=True)
     for batch_x, batch_y in tfe.Iterator(test):
-        batch_x = tf.reshape(batch_x, (batch_size, timestamps, num_input))
+        batch_x = tf.reshape(batch_x, (batch_size, input_rows, num_input))
         batch_x = tf.dtypes.cast(batch_x, tf.float32)
         batch_y = tf.dtypes.cast(batch_y, tf.float32)
         loss = loss_function(batch_x, batch_y)
