@@ -29,31 +29,30 @@ train_target_min = 0
 now = list()
 one = list()
 two = list()
+wind = list()
 one_wind = list()
-two_wind = list()
 
 for i, v in enumerate(train_df.values[:-2]):
     if i % 3 == 1:
         one.append((v[0] * (train_target_max - train_target_min)) + train_target_min)
-        one_wind.append(v[1])
+        wind.append(v[1])
     elif i % 3 == 2:
         now.append(v[0] * (train_target_max - train_target_min) + train_target_min)
     else:
         two.append((v[0] * (train_target_max - train_target_min)) + train_target_min)
-        two_wind.append(v[1])
+        one_wind.append(v[1])
 
 
 
 data = {
     "one": one,
     "two": two,
+    "wind": wind,
     "one_wind": one_wind,
-    "two_wind": two_wind,
     "now": now
 }
 
 _df = pd.DataFrame(data=data)
-print (_df)
 
 cor = _df.corr()
 sns.heatmap(cor, annot=True, cmap=plt.cm.Reds)

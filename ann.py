@@ -19,14 +19,15 @@ base_path = os.path.dirname(os.path.abspath(__file__))
 
 learning_rate = 0.001
 training_steps = 1000
+input_rows = 24
 batch_size = 315
 display_step = 2
 
 min = tf.constant(0.0, dtype=tf.float32)
 max = tf.constant(5583.0, dtype=tf.float32)
 
-num_input = 3
-num_hidden = [5]
+num_input = 3 * input_rows
+num_hidden = [5, 5, 5]
 num_classes = 1
 
 train_df = pd.read_excel(os.path.join(base_path, "data/hour_ahead/train_in.xlsx"))
@@ -34,31 +35,57 @@ train_label_df = pd.read_excel(os.path.join(base_path, "data/hour_ahead/train_ou
 test_df = pd.read_excel(os.path.join(base_path, "data/hour_ahead/test_in.xlsx"))
 test_label_df = pd.read_excel(os.path.join(base_path, "data/hour_ahead/test_out.xlsx"))
 
-trainset   = train_df.values
-testset    = test_df.values
-trainlabel = train_label_df.values
-testlabel  = test_label_df.values
+train_data_list = train_df.values
+test_data_list  = test_df.values
+
+train_data = list()
+test_data = list()
+train_target = list()
+test_target = list()
+
+temp_row = list()
+
+for i in range(len(train_data_list) - (input_rows - 1)):
+    for j in range(input_rows):
+        temp_row += list(train_data_list[i + j])
+    
+    train_data.append(temp_row)
+    temp_row = list()
+
+temp_row = list()
+
+for i in range(len(test_data_list) - (len(test_data_list) % input_rows)):
+    for j in range(input_rows):
+        temp_row += list(test_data_list[i + j])
+    test_data.append(temp_row)
+    temp_row = list()
+
+train_target = train_label_df.values[input_rows-1:]
+test_target = test_label_df.values[input_rows-1:]
 
 
-trainset = tf.data.Dataset.from_tensor_slices((trainset, trainlabel))
-testset = tf.data.Dataset.from_tensor_slices((testset, testlabel))
+trainset = tf.data.Dataset.from_tensor_slices((train_data, train_target))
+testset = tf.data.Dataset.from_tensor_slices((test_data, test_target))
 
 trainset = trainset.shuffle(1000)
 
 weights = {
     "w1": tf.Variable(tf.random_normal([num_input, num_hidden[0]]), dtype=tf.float32),
-    # "w2": tf.Variable(tf.random_normal([num_hidden[0], num_hidden[1]]), dtype=tf.float32),
-    'out': tf.Variable(tf.random_normal([num_hidden[0], num_classes]), dtype=tf.float32)
+    "w2": tf.Variable(tf.random_normal([num_hidden[0], num_hidden[1]]), dtype=tf.float32),
+    "w3": tf.Variable(tf.random_normal([num_hidden[1], num_hidden[2]]), dtype=tf.float32),
+    'out': tf.Variable(tf.random_normal([num_hidden[2], num_classes]), dtype=tf.float32)
 }
 biases = {
     'b1': tf.Variable(tf.random_normal([num_hidden[0]]), dtype=tf.float32),
-    # 'b2': tf.Variable(tf.random_normal([num_hidden[1]]), dtype=tf.float32),
+    'b2': tf.Variable(tf.random_normal([num_hidden[1]]), dtype=tf.float32),
+    'b3': tf.Variable(tf.random_normal([num_hidden[2]]), dtype=tf.float32),
     'out': tf.Variable(tf.random_normal([num_classes]), dtype=tf.float32)
 }
 
 def ANN(x, weights, biases):
     fc1 = tf.add(tf.matmul(x, weights['w1']), biases['b1'])
-    # fc2 = tf.add(tf.matmul(fc1, weights['w2']), biases['b2'])
+    fc2 = tf.add(tf.matmul(fc1, weights['w2']), biases['b2'])
+    fc3 = tf.add(tf.matmul(fc2, weights['w3']), biases['b3'])
     out = tf.matmul(fc1, weights['out']) + biases['out']
     activate = tf.math.tanh(out)
     return activate
