@@ -87,7 +87,7 @@ def ANN(x, weights, biases):
     fc2 = tf.add(tf.matmul(fc1, weights['w2']), biases['b2'])
     fc3 = tf.add(tf.matmul(fc2, weights['w3']), biases['b3'])
     out = tf.matmul(fc1, weights['out']) + biases['out']
-    activate = tf.math.tanh(out)
+    activate = tf.math.sigmoid(out)
     return activate
 
 def loss_function(x, y):
