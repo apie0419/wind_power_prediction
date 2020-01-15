@@ -19,8 +19,8 @@ epochs        = 20
 ksize         = 7
 levels        = 8
 n_classes     = 1
-input_rows    = 24
-num_input     = 3 * input_rows
+timesteps    = 24
+num_input     = 3
 
 _min = tf.constant(0.0, dtype=tf.float32)
 _max = tf.constant(5583.0, dtype=tf.float32)
@@ -43,23 +43,23 @@ test_target = list()
 
 temp_row = list()
 
-for i in range(len(train_data_list) - (input_rows - 1)):
-    for j in range(input_rows):
-        temp_row += list(train_data_list[i + j])
+for i in range(len(train_data_list) - (timesteps - 1)):
+    for j in range(timesteps):
+        temp_row.append(list(train_data_list[i + j]))
     
     train_data.append(temp_row)
     temp_row = list()
 
 temp_row = list()
 
-for i in range(len(test_data_list) - (len(test_data_list) % input_rows)):
-    for j in range(input_rows):
-        temp_row += list(test_data_list[i + j])
+for i in range(len(test_data_list) - (len(test_data_list) % timesteps)):
+    for j in range(timesteps):
+        temp_row.append(list(test_data_list[i + j]))
     test_data.append(temp_row)
     temp_row = list()
 
-train_target = train_target_df.values[input_rows-1:]
-test_target = test_target_df.values[input_rows-1:]
+train_target = train_target_df.values[timesteps-1:]
+test_target = test_target_df.values[timesteps-1:]
 
 trainset = tf.data.Dataset.from_tensor_slices((train_data, train_target))
 testset = tf.data.Dataset.from_tensor_slices((test_data, test_target))
@@ -90,7 +90,7 @@ with tf.device("/gpu:1"):
         train = trainset.batch(batch_size, drop_remainder=True)
         
         for batch_x, batch_y in tfe.Iterator(train):
-            batch_x = tf.reshape(batch_x, (batch_size, num_input))
+            batch_x = tf.reshape(batch_x, (batch_size, timesteps, num_input))
             batch_x = tf.dtypes.cast(batch_x, tf.float32)
             batch_y = tf.dtypes.cast(batch_y, tf.float32)
             
@@ -109,7 +109,7 @@ fig.savefig("tcn_loss.png")
 print("Optimization Finished!")
 test = testset.batch(batch_size, drop_remainder=True)
 for batch_x, batch_y in tfe.Iterator(test):
-    batch_x = tf.reshape(batch_x, (batch_size, num_input))
+    batch_x = tf.reshape(batch_x, (batch_size, timesteps, num_input))
     batch_x = tf.dtypes.cast(batch_x, tf.float32)
     batch_y = tf.dtypes.cast(batch_y, tf.float32)
     loss = loss_function(batch_x, batch_y, False)

@@ -37,12 +37,12 @@ class TemporalBlock(tf.keras.Model):
 		x = self.conv1(x)
 		x = self.batch1(x)
 		x = self.ac1(x)
-		x = self.drop1(x) if training else x
+		# x = self.drop1(x) if training else x
 
 		x = self.conv2(x)
 		x = self.batch2(x)
 		x = self.ac2(x)
-		x = self.drop2(x) if training else x
+		# x = self.drop2(x) if training else x
 
 		if prev_x.shape[-1] != x.shape[-1]:    # match the dimention
 			prev_x = self.downsample(prev_x)
