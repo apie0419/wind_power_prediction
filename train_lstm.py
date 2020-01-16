@@ -31,17 +31,17 @@ num_hidden = 256
 num_classes = 1
 keep_prob = 0.7
 
-_min = tf.constant(0.0, dtype=tf.float32)
-_max = tf.constant(28957.26, dtype=tf.float32)
+data_path = os.path.join(base_path, "data/2")
 
+train_df = pd.read_excel(os.path.join(data_path, "hour_ahead/train_in.xlsx"))
+train_label_df = pd.read_excel(os.path.join(data_path, "hour_ahead/train_out.xlsx"))
+test_df = pd.read_excel(os.path.join(data_path, "hour_ahead/test_in.xlsx"))
+test_label_df = pd.read_excel(os.path.join(data_path, "hour_ahead/test_out.xlsx"))
+min_max = pd.read_excel(os.path.join(data_path, "hour_ahead/max_min.xls"))
 
-train_df = pd.read_excel(os.path.join(base_path, "data/hour_ahead/train_in.xlsx"))
-train_label_df = pd.read_excel(os.path.join(base_path, "data/hour_ahead/train_out.xlsx"))
-test_df = pd.read_excel(os.path.join(base_path, "data/hour_ahead/test_in.xlsx"))
-test_label_df = pd.read_excel(os.path.join(base_path, "data/hour_ahead/test_out.xlsx"))
+_min = tf.constant(min_max["pmin"][0], dtype=tf.float32)
+_max = tf.constant(round(min_max["pmax"][0], 2), dtype=tf.float32)
 
-# trainset_list = train_df.values[:, ::2]
-# testset_list  = test_df.values[:, ::2]
 trainset_list = train_df.values
 testset_list  = test_df.values
 trainlabel = train_label_df.values[timestamps * input_rows - 1:]
@@ -79,7 +79,7 @@ def RNN(x, weights, biases):
 
     x = tf.unstack(x, timestamps, axis=1)
 
-    lstm_cell = tf.nn.rnn_cell.LSTMCell(num_hidden, forget_bias=1.0, name='basic_lstm_cell', activation="sigmoid")
+    lstm_cell = tf.nn.rnn_cell.LSTMCell(num_hidden, forget_bias=1.0, name='basic_lstm_cell')
 
     dropout_cell = tf.nn.rnn_cell.DropoutWrapper(lstm_cell, output_keep_prob=keep_prob)
 
@@ -152,7 +152,7 @@ with tf.device("/gpu:1"):
     ax.plot(epochs, losses)
     ax.set(xlabel='epochs', ylabel='loss (RMSE)')
     ax.grid()
-    fig.savefig("loss.png")
+    fig.savefig(os.path.join(base_path, "Output/lstm_loss.png"))
 
 
     print("Optimization Finished!")
@@ -187,4 +187,4 @@ with tf.device("/gpu:1"):
     })
 
     data.plot()
-    plt.savefig(os.path.join(base_path, "result.png"))
+    plt.savefig(os.path.join(base_path, "Output/lstm_evaluation.png"))

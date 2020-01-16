@@ -2,6 +2,7 @@ import pandas as pd
 import xgboost as xgb
 import numpy as np
 import math, os
+from matplotlib import pyplot as plt
 from sklearn import datasets, linear_model, metrics
 from sklearn.metrics import mean_squared_error, r2_score, make_scorer
 
@@ -9,12 +10,16 @@ base_path = os.path.dirname(os.path.abspath(__file__))
 
 input_rows = 24
 
-train_data_df = pd.read_excel(os.path.join(base_path, "data/hour_ahead/train_in.xlsx"))
-train_target_df = pd.read_excel(os.path.join(base_path, "data/hour_ahead/train_out.xlsx"))
-test_data_df = pd.read_excel(os.path.join(base_path, "data/hour_ahead/test_in.xlsx"))
-test_target_df = pd.read_excel(os.path.join(base_path, "data/hour_ahead/test_out.xlsx"))
+data_path = os.path.join(base_path, "data/1")
+
+train_data_df = pd.read_excel(os.path.join(data_path, "hour_ahead/train_in.xlsx"))
+train_target_df = pd.read_excel(os.path.join(data_path, "hour_ahead/train_out.xlsx"))
+test_data_df = pd.read_excel(os.path.join(data_path, "hour_ahead/test_in.xlsx"))
+test_target_df = pd.read_excel(os.path.join(data_path, "hour_ahead/test_out.xlsx"))
 train_target_max = 28.957
 train_target_min = 0
+
+
 
 ## 直接每個 row 訓練
 
@@ -63,9 +68,9 @@ test_target_ori = (test_target * (train_target_max - train_target_min)) + train_
 #模型建構
 
 regr = xgb.XGBRegressor(
-    gamma=0.1,
+    gamma=0,
     learning_rate=0.01,
-    max_depth=10,
+    max_depth=20,
     min_child_weight=10,
     n_estimators=2000,
     reg_alpha=0.5,
@@ -98,3 +103,10 @@ target = target[:, 0]
 #評估模型
 print('\nTest RMSE = ')
 print(math.sqrt(metrics.mean_squared_error(target, preds)))
+
+pd.DataFrame({
+    "predict": preds,
+    "target": target
+}).plot()
+
+plt.savefig(os.path.join(base_path, "Output/xgboost_evaluation.png"))

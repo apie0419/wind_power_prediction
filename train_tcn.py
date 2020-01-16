@@ -12,11 +12,11 @@ tf.enable_eager_execution()
 base_path = os.path.dirname(os.path.abspath(__file__))
 
 batch_size    = 64
-hidden_units  = 24
+hidden_units  = 12
 learning_rate = 0.001
 dropout       = 0.1
 epochs        = 100
-ksize         = 5
+ksize         = 3
 levels        = 5
 n_classes     = 1
 timesteps     = 24
@@ -25,11 +25,12 @@ num_input     = 3
 _min = tf.constant(0.0, dtype=tf.float32)
 _max = tf.constant(28957.26, dtype=tf.float32)
 
+data_path = os.path.join(base_path, "data/2")
 
-train_data_df = pd.read_excel(os.path.join(base_path, "data/hour_ahead/train_in.xlsx"))
-train_target_df = pd.read_excel(os.path.join(base_path, "data/hour_ahead/train_out.xlsx"))
-test_data_df = pd.read_excel(os.path.join(base_path, "data/hour_ahead/test_in.xlsx"))
-test_target_df = pd.read_excel(os.path.join(base_path, "data/hour_ahead/test_out.xlsx"))
+train_data_df = pd.read_excel(os.path.join(data_path, "hour_ahead/train_in.xlsx"))
+train_target_df = pd.read_excel(os.path.join(data_path, "hour_ahead/train_out.xlsx"))
+test_data_df = pd.read_excel(os.path.join(data_path, "hour_ahead/test_in.xlsx"))
+test_target_df = pd.read_excel(os.path.join(data_path, "hour_ahead/test_out.xlsx"))
 
 
 train_data_list = train_data_df.values
@@ -76,7 +77,6 @@ def loss_function(x, y, training):
 
     denorm_y = denorm(y, _min, _max)
 
-
     return tf.sqrt(tf.reduce_mean(tf.square(tf.subtract(denorm_y, denorm_x)))), logits
     
 
@@ -102,11 +102,14 @@ with tf.device("/gpu:1"):
         losses.append(loss)
         print("Epoch " + str(epoch) + ", Minibatch RMSE Loss= {:.4f}".format(loss))
 
+if not os.path.exists(os.path.join(base_path, "Output")):
+    os.mkdir(os.path.join(base_path, "Output"))
+
 fig, ax = plt.subplots()
 ax.plot(list(range(1, epochs + 1)), losses)
 ax.set(xlabel='epochs', ylabel='loss (RMSE)')
 ax.grid()
-fig.savefig("tcn_loss.png")
+fig.savefig(os.path.join(base_path, "Output/tcn_loss.png"))
 
 print("Optimization Finished!")
 
@@ -115,6 +118,11 @@ test_data = tf.dtypes.cast(test_data, tf.float32)
 test_target = tf.dtypes.cast(test_target, tf.float32)
 
 loss, logits = loss_function(test_data, test_target, training=False)
+
+logits = denorm(logits, _min, _max)
+
+test_target = denorm(test_target, _min, _max)
+
 print ("Test Loss: ", loss.numpy())
 
 pd.DataFrame({
@@ -122,4 +130,4 @@ pd.DataFrame({
     "target": test_target[:, 0]
 }).plot()
 
-plt.savefig("tcn_evaluation.png")
+plt.savefig(os.path.join(base_path, "Output/tcn_evaluation.png"))
