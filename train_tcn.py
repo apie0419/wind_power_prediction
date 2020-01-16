@@ -76,7 +76,9 @@ def loss_function(x, y, training):
 
     denorm_y = denorm(y, _min, _max)
 
+
     return tf.sqrt(tf.reduce_mean(tf.square(tf.subtract(denorm_y, denorm_x)))), logits
+    
 
 def denorm(x, min, max):
 
