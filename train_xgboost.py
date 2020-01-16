@@ -13,7 +13,7 @@ train_data_df = pd.read_excel(os.path.join(base_path, "data/hour_ahead/train_in.
 train_target_df = pd.read_excel(os.path.join(base_path, "data/hour_ahead/train_out.xlsx"))
 test_data_df = pd.read_excel(os.path.join(base_path, "data/hour_ahead/test_in.xlsx"))
 test_target_df = pd.read_excel(os.path.join(base_path, "data/hour_ahead/test_out.xlsx"))
-train_target_max = 5.583
+train_target_max = 28.957
 train_target_min = 0
 
 ## 直接每個 row 訓練

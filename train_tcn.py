@@ -11,19 +11,19 @@ tf.enable_eager_execution()
 
 base_path = os.path.dirname(os.path.abspath(__file__))
 
-batch_size    = 32
-hidden_units  = 25
+batch_size    = 64
+hidden_units  = 24
 learning_rate = 0.001
-dropout       = 0.05
-epochs        = 20
-ksize         = 7
-levels        = 8
+dropout       = 0.1
+epochs        = 100
+ksize         = 5
+levels        = 5
 n_classes     = 1
-timesteps    = 24
+timesteps     = 24
 num_input     = 3
 
 _min = tf.constant(0.0, dtype=tf.float32)
-_max = tf.constant(5583.0, dtype=tf.float32)
+_max = tf.constant(28957.26, dtype=tf.float32)
 
 
 train_data_df = pd.read_excel(os.path.join(base_path, "data/hour_ahead/train_in.xlsx"))
@@ -62,7 +62,7 @@ train_target = train_target_df.values[timesteps-1:]
 test_target = test_target_df.values[timesteps-1:]
 
 trainset = tf.data.Dataset.from_tensor_slices((train_data, train_target))
-testset = tf.data.Dataset.from_tensor_slices((test_data, test_target))
+test_data, test_target = tf.convert_to_tensor(test_data), tf.convert_to_tensor(test_target)
 
 channel_sizes = [hidden_units] * levels
 optimizer = tf.train.AdamOptimizer(learning_rate)
@@ -76,7 +76,7 @@ def loss_function(x, y, training):
 
     denorm_y = denorm(y, _min, _max)
 
-    return tf.sqrt(tf.reduce_mean(tf.square(tf.subtract(y, x))))
+    return tf.sqrt(tf.reduce_mean(tf.square(tf.subtract(denorm_y, denorm_x)))), logits
 
 def denorm(x, min, max):
 
@@ -96,9 +96,9 @@ with tf.device("/gpu:1"):
             
             optimizer.minimize(lambda: loss_function(batch_x, batch_y, True))
         
-        loss = loss_function(batch_x, batch_y, False)
+        loss, logits = loss_function(batch_x, batch_y, False)
         losses.append(loss)
-        print("Epoch " + str(epoch) + ", Minibatch RMSE Loss= {:.4f}".format(rmse_loss))
+        print("Epoch " + str(epoch) + ", Minibatch RMSE Loss= {:.4f}".format(loss))
 
 fig, ax = plt.subplots()
 ax.plot(list(range(1, epochs + 1)), losses)
@@ -107,11 +107,17 @@ ax.grid()
 fig.savefig("tcn_loss.png")
 
 print("Optimization Finished!")
-test = testset.batch(batch_size, drop_remainder=True)
-for batch_x, batch_y in tfe.Iterator(test):
-    batch_x = tf.reshape(batch_x, (batch_size, timesteps, num_input))
-    batch_x = tf.dtypes.cast(batch_x, tf.float32)
-    batch_y = tf.dtypes.cast(batch_y, tf.float32)
-    loss = loss_function(batch_x, batch_y, False)
 
-    print("Testing Loss:", loss.numpy())
+
+test_data = tf.dtypes.cast(test_data, tf.float32)
+test_target = tf.dtypes.cast(test_target, tf.float32)
+
+loss, logits = loss_function(test_data, test_target, training=False)
+print ("Test Loss: ", loss.numpy())
+
+pd.DataFrame({
+    "predict": logits[:, 0],
+    "target": test_target[:, 0]
+}).plot()
+
+plt.savefig("tcn_evaluation.png")

@@ -32,7 +32,7 @@ num_classes = 1
 keep_prob = 0.7
 
 _min = tf.constant(0.0, dtype=tf.float32)
-_max = tf.constant(5583.0, dtype=tf.float32)
+_max = tf.constant(28957.26, dtype=tf.float32)
 
 
 train_df = pd.read_excel(os.path.join(base_path, "data/hour_ahead/train_in.xlsx"))
