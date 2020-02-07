@@ -60,6 +60,8 @@ class TemporalConvNet(tf.keras.Model):
         model = tf.keras.Sequential()
 
         num_levels = len(num_channels)
+        # dilation_rate = [1, 3, 5, 7, 9]
+
         for i in range(num_levels):
             dilation_rate = 2 ** i                  # exponential growth
             model.add(TemporalBlock(dilation_rate, num_channels[i], kernel_size, 

@@ -11,31 +11,30 @@ tf.enable_eager_execution()
 
 base_path = os.path.dirname(os.path.abspath(__file__))
 
-batch_size    = 64
-hidden_units  = 12
+batch_size    = 32
+hidden_units  = 24
 learning_rate = 0.001
 dropout       = 0.1
-epochs        = 100
+epochs        = 70
 ksize         = 3
 levels        = 5
 n_classes     = 1
 timesteps     = 24
 num_input     = 3
 
-_min = tf.constant(0.0, dtype=tf.float32)
-_max = tf.constant(28957.26, dtype=tf.float32)
-
-data_path = os.path.join(base_path, "data/2")
+data_path = os.path.join(base_path, "data/1")
 
 train_data_df = pd.read_excel(os.path.join(data_path, "hour_ahead/train_in.xlsx"))
 train_target_df = pd.read_excel(os.path.join(data_path, "hour_ahead/train_out.xlsx"))
 test_data_df = pd.read_excel(os.path.join(data_path, "hour_ahead/test_in.xlsx"))
 test_target_df = pd.read_excel(os.path.join(data_path, "hour_ahead/test_out.xlsx"))
+min_max = pd.read_excel(os.path.join(data_path, "hour_ahead/max_min.xls"))
 
+_min = tf.constant(min_max["pmin"][0], dtype=tf.float32)
+_max = tf.constant(round(min_max["pmax"][0], 2), dtype=tf.float32)
 
 train_data_list = train_data_df.values
 test_data_list  = test_data_df.values
-
 
 train_data = list()
 test_data = list()
@@ -77,53 +76,54 @@ def loss_function(x, y, training):
 
     denorm_y = denorm(y, _min, _max)
 
-    return tf.sqrt(tf.reduce_mean(tf.square(tf.subtract(denorm_y, denorm_x)))), logits
+    lossL2 = tf.add_n(model.losses)
+
+    return tf.sqrt(tf.reduce_mean(tf.square(tf.subtract(denorm_y, denorm_x)))) + lossL2, logits
     
 
 def denorm(x, min, max):
 
     return x * (max - min) + min
 
-losses = list()
+train_losses = list()
+test_data = tf.dtypes.cast(test_data, tf.float32)
+test_target = tf.dtypes.cast(test_target, tf.float32)
+test_losses = list()
 
 with tf.device("/gpu:1"):
 
     for epoch in range(1, epochs + 1):
-        train = trainset.batch(batch_size, drop_remainder=True)
+        train = trainset.batch(batch_size, drop_remainder=True).gpu()
         
         for batch_x, batch_y in tfe.Iterator(train):
             batch_x = tf.reshape(batch_x, (batch_size, timesteps, num_input))
-            batch_x = tf.dtypes.cast(batch_x, tf.float32)
-            batch_y = tf.dtypes.cast(batch_y, tf.float32)
+            batch_x = tf.dtypes.cast(batch_x, tf.float32).gpu()
+            batch_y = tf.dtypes.cast(batch_y, tf.float32).gpu()
             
             optimizer.minimize(lambda: loss_function(batch_x, batch_y, True))
         
-        loss, logits = loss_function(batch_x, batch_y, False)
-        losses.append(loss)
-        print("Epoch " + str(epoch) + ", Minibatch RMSE Loss= {:.4f}".format(loss))
+        train_loss, logits = loss_function(batch_x, batch_y, False)
+        train_losses.append(train_loss.numpy())
 
+        test_loss, logits = loss_function(test_data, test_target, training=False)
+        logits = denorm(logits, _min, _max)
+        target = denorm(test_target, _min, _max)
+
+        print("Epoch " + str(epoch) + ", Minibatch RMSE Loss= {:.4f}, Test Loss= {:.4f}".format(train_loss, test_loss))
+
+        test_losses.append(test_loss.numpy())
+        
 if not os.path.exists(os.path.join(base_path, "Output")):
     os.mkdir(os.path.join(base_path, "Output"))
 
-fig, ax = plt.subplots()
-ax.plot(list(range(1, epochs + 1)), losses)
-ax.set(xlabel='epochs', ylabel='loss (RMSE)')
-ax.grid()
-fig.savefig(os.path.join(base_path, "Output/tcn_loss.png"))
+pd.DataFrame({
+    "train": train_losses,
+    "test": test_losses
+}).plot()
+
+plt.savefig(os.path.join(base_path, "Output/tcn_loss.png"))
 
 print("Optimization Finished!")
-
-
-test_data = tf.dtypes.cast(test_data, tf.float32)
-test_target = tf.dtypes.cast(test_target, tf.float32)
-
-loss, logits = loss_function(test_data, test_target, training=False)
-
-logits = denorm(logits, _min, _max)
-
-test_target = denorm(test_target, _min, _max)
-
-print ("Test Loss: ", loss.numpy())
 
 pd.DataFrame({
     "predict": logits[:, 0],
