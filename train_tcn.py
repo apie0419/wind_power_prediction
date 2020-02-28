@@ -11,16 +11,18 @@ tf.enable_eager_execution()
 
 base_path = os.path.dirname(os.path.abspath(__file__))
 
-batch_size    = 32
-hidden_units  = 24
-learning_rate = 0.001
+batch_size    = 64
+hidden_units  = 12
 dropout       = 0.1
-epochs        = 70
-ksize         = 3
+epochs        = 500
+ksize         = 2
 levels        = 5
 n_classes     = 1
 timesteps     = 24
 num_input     = 3
+global_step   = tf.Variable(0, trainable=False)
+starter_learning_rate = 0.002
+
 
 data_path = os.path.join(base_path, "data/1")
 
@@ -40,7 +42,6 @@ train_data = list()
 test_data = list()
 train_target = list()
 test_target = list()
-
 temp_row = list()
 
 for i in range(len(train_data_list) - (timesteps - 1)):
@@ -65,6 +66,7 @@ trainset = tf.data.Dataset.from_tensor_slices((train_data, train_target))
 test_data, test_target = tf.convert_to_tensor(test_data), tf.convert_to_tensor(test_target)
 
 channel_sizes = [hidden_units] * levels
+learning_rate = tf.train.exponential_decay(starter_learning_rate, global_step, 3000, 0.7, staircase=True)
 optimizer = tf.train.AdamOptimizer(learning_rate)
 model = TCN(n_classes, channel_sizes, kernel_size=ksize, dropout=dropout)
 
@@ -93,14 +95,13 @@ test_losses = list()
 with tf.device("/gpu:1"):
 
     for epoch in range(1, epochs + 1):
-        train = trainset.batch(batch_size, drop_remainder=True).gpu()
+        train = trainset.batch(batch_size, drop_remainder=True)
         
         for batch_x, batch_y in tfe.Iterator(train):
             batch_x = tf.reshape(batch_x, (batch_size, timesteps, num_input))
-            batch_x = tf.dtypes.cast(batch_x, tf.float32).gpu()
-            batch_y = tf.dtypes.cast(batch_y, tf.float32).gpu()
-            
-            optimizer.minimize(lambda: loss_function(batch_x, batch_y, True))
+            batch_x = tf.dtypes.cast(batch_x, tf.float32)
+            batch_y = tf.dtypes.cast(batch_y, tf.float32)
+            optimizer.minimize(lambda: loss_function(batch_x, batch_y, True), global_step=global_step)
         
         train_loss, logits = loss_function(batch_x, batch_y, False)
         train_losses.append(train_loss.numpy())
@@ -109,7 +110,7 @@ with tf.device("/gpu:1"):
         logits = denorm(logits, _min, _max)
         target = denorm(test_target, _min, _max)
 
-        print("Epoch " + str(epoch) + ", Minibatch RMSE Loss= {:.4f}, Test Loss= {:.4f}".format(train_loss, test_loss))
+        print("Epoch " + str(epoch) + ", Minibatch RMSE Loss= {:.4f}, Test Loss= {:.4f}, LR: {:.5f}".format(train_loss, test_loss, optimizer._lr()))
 
         test_losses.append(test_loss.numpy())
         
@@ -127,7 +128,7 @@ print("Optimization Finished!")
 
 pd.DataFrame({
     "predict": logits[:, 0],
-    "target": test_target[:, 0]
+    "target": target[:, 0]
 }).plot()
 
 plt.savefig(os.path.join(base_path, "Output/tcn_evaluation.png"))

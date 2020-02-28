@@ -65,7 +65,7 @@ class TemporalConvNet(tf.keras.Model):
         for i in range(num_levels):
             dilation_rate = 2 ** i                  # exponential growth
             model.add(TemporalBlock(dilation_rate, num_channels[i], kernel_size, 
-                      padding='causal', dropout_rate=dropout))
+                      padding='same', dropout_rate=dropout))
         self.network = model
 
     def call(self, x, training):
