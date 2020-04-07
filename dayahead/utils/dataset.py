@@ -18,29 +18,33 @@ class Dataset(object):
         self._max = float(round(min_max["pmax"][0], 2))
     
     def process_train(self):
-        train_data, temp_row = list(), list()
-        for i in range(len(self.train_data_raw) - (self.timesteps - 1 + 24)):
-            for j in range(self.timesteps):
-                temp_row.append(list(self.train_data_raw[i + j]))
-            
-            train_data.append(temp_row)
-            temp_row = list()
         
-        train_target = self.train_target_raw[self.timesteps+23:]
+        train_data, train_target, temp_data_row, temp_target_row = list(), list(), list(), list()
+
+        for i in range(len(self.train_data_raw) - (2 * self.timesteps - 1)):
+            for j in range(self.timesteps):
+                temp_data_row.append(list(self.train_data_raw[i + j][4:]) + [self.train_target_raw[i + j][4]])
+                temp_target_row.append(self.train_target_raw[i + j + self.timesteps][4])
+                
+            train_data.append(temp_data_row)
+            train_target.append(temp_target_row)
+            temp_data_row = list()
+            temp_target_row = list()
 
         return train_data, train_target
 
     def process_test(self):
-        test_data, temp_row = list(), list()
-        for i in range(len(self.test_data_raw) - (self.timesteps - 1 + 24)):
+        test_data, test_target, temp_data_row, temp_target_row = list(), list(), list(), list()
+        for i in range(len(self.test_data_raw) - (2 * self.timesteps - 1)):
             for j in range(self.timesteps):
-                temp_row.append(list(self.test_data_raw[i + j]))
-            
-            test_data.append(temp_row)
-            temp_row = list()
-        
-        test_target = self.test_target_raw[self.timesteps+23:]
+                temp_data_row.append(list(self.test_data_raw[i + j][4:]) + [self.test_target_raw[i + j][4]])
+                temp_target_row.append(self.test_target_raw[i + j + self.timesteps][4])
 
+            test_data.append(temp_data_row)
+            test_target.append(temp_target_row)
+            temp_data_row = list()
+            temp_target_row = list()
+        
         return test_data, test_target
 
     def append(self, dataset):

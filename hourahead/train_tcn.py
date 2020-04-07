@@ -76,7 +76,7 @@ with tf.device(f"/gpu:{GPU}"):
         logits = denorm(logits, _min, _max)
         target = denorm(test_target, _min, _max)
 
-        print("Epoch " + str(epoch) + ", Minibatch RMSE Loss= {:.4f}, Test Loss= {:.4f}, LR: {:.5f}".format(train_loss, test_loss, optimizer._lr()))
+        print("Epoch " + str(epoch) + ", Minibatch RMSE Loss= {:.4f}, Test Loss= {:.4f}, LR: {:.4f}".format(train_loss, test_loss, optimizer._lr()))
 
         test_losses.append(test_loss.numpy())
         

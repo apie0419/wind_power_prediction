@@ -13,16 +13,16 @@ base_path = os.path.dirname(os.path.abspath(__file__))
 
 GPU           = 1
 batch_size    = 64
-hidden_units  = 12
+hidden_units  = 32
 dropout       = 0.1
 epochs        = 500
 ksize         = 2
 levels        = 5
-n_classes     = 1
-timesteps     = 24
-num_input     = 3
+n_classes     = 8
+timesteps     = 8
+num_input     = 8
 global_step   = tf.Variable(0, trainable=False)
-l2_lambda     = 0
+l2_lambda     = 10
 starter_learning_rate = 0.002
 
 data_path = os.path.join(base_path, "../data/1")
@@ -68,18 +68,15 @@ with tf.device(f"/gpu:{GPU}"):
         denorm_y = denorm(batch_y, _min, _max)
         train_loss = rmse(denorm_x, denorm_y)
         train_losses.append(train_loss.numpy())
-
+        
         logits = model(test_data, training=False)
         denorm_x = denorm(logits, _min, _max)
         denorm_y = denorm(test_target, _min, _max)
         test_loss = rmse(denorm_x, denorm_y)
-        logits = denorm(logits, _min, _max)
-        target = denorm(test_target, _min, _max)
+        test_losses.append(test_loss.numpy())
 
         print("Epoch " + str(epoch) + ", Minibatch RMSE Loss= {:.4f}, Test Loss= {:.4f}, LR: {:.5f}".format(train_loss, test_loss, optimizer._lr()))
-
-        test_losses.append(test_loss.numpy())
-        
+      
 if not os.path.exists(os.path.join(base_path, "Output")):
     os.mkdir(os.path.join(base_path, "Output"))
 
