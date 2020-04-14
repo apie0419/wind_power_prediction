@@ -12,23 +12,12 @@ input_rows = 24
 
 data_path = os.path.join(base_path, "data/1")
 
-train_data_df = pd.read_excel(os.path.join(data_path, "hour_ahead/train_in.xlsx"))
-train_target_df = pd.read_excel(os.path.join(data_path, "hour_ahead/train_out.xlsx"))
-test_data_df = pd.read_excel(os.path.join(data_path, "hour_ahead/test_in.xlsx"))
-test_target_df = pd.read_excel(os.path.join(data_path, "hour_ahead/test_out.xlsx"))
-train_target_max = 28.957
+train_data_df = pd.read_excel(os.path.join(data_path, "day_ahead/train_in.xlsx"))
+train_target_df = pd.read_excel(os.path.join(data_path, "day_ahead/train_out.xlsx"))
+test_data_df = pd.read_excel(os.path.join(data_path, "day_ahead/test_in.xlsx"))
+test_target_df = pd.read_excel(os.path.join(data_path, "day_ahead/test_out.xlsx"))
+train_target_max = 5.583
 train_target_min = 0
-
-
-
-## 直接每個 row 訓練
-
-# train_data = train_data_df.values
-# train_target = train_target_df.values
-# test_data = test_data_df.values
-# test_target = test_target_df.values
-
-##
 
 train_data_list = train_data_df.values
 test_data_list  = test_data_df.values
