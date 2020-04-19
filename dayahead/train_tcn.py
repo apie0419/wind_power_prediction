@@ -13,7 +13,7 @@ base_path = os.path.dirname(os.path.abspath(__file__))
 
 GPU           = 1
 batch_size    = 64
-hidden_units  = 32
+hidden_units  = 16
 dropout       = 0.3
 epochs        = 50
 ksize         = 3

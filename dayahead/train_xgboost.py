@@ -1,58 +1,23 @@
 import pandas as pd
 import xgboost as xgb
 import numpy as np
-import math, os
+import os, math
 from matplotlib import pyplot as plt
+from utils import Dataset, denorm, rmse
 from sklearn import datasets, linear_model, metrics
 from sklearn.metrics import mean_squared_error, r2_score, make_scorer
 
 base_path = os.path.dirname(os.path.abspath(__file__))
 
-input_rows = 24
+timesteps = 8
+num_input = 6
 
-data_path = os.path.join(base_path, "data/1")
+data_path = os.path.join(base_path, "../data/1")
+dataset = Dataset(data_path, timesteps)
+_min, _max = dataset._min, dataset._max
 
-train_data_df = pd.read_excel(os.path.join(data_path, "day_ahead/train_in.xlsx"))
-train_target_df = pd.read_excel(os.path.join(data_path, "day_ahead/train_out.xlsx"))
-test_data_df = pd.read_excel(os.path.join(data_path, "day_ahead/test_in.xlsx"))
-test_target_df = pd.read_excel(os.path.join(data_path, "day_ahead/test_out.xlsx"))
-train_target_max = 5.583
-train_target_min = 0
-
-train_data_list = train_data_df.values
-test_data_list  = test_data_df.values
-
-
-train_data = list()
-test_data = list()
-train_target = list()
-test_target = list()
-
-
-temp_row = list()
-
-for i in range(len(train_data_list) - (input_rows - 1)):
-    for j in range(input_rows):
-        temp_row += list(train_data_list[i + j])
-    
-    train_data.append(temp_row)
-    temp_row = list()
-
-temp_row = list()
-
-for i in range(len(test_data_list) - (len(test_data_list) % input_rows)):
-    for j in range(input_rows):
-        temp_row += list(test_data_list[i + j])
-    test_data.append(temp_row)
-    temp_row = list()
-
-train_target = train_target_df.values[input_rows-1:]
-test_target = test_target_df.values[input_rows-1:]
-
-
-train_target_ori = (train_target * (train_target_max - train_target_min)) + train_target_min 
-test_target_ori = (test_target * (train_target_max - train_target_min)) + train_target_min  
-
+train_data = np.reshape(dataset.train_data, (-1, num_input * timesteps))
+test_data = np.reshape(dataset.test_data, (-1, num_input * timesteps))
 
 #模型建構
 
@@ -70,31 +35,44 @@ regr = xgb.XGBRegressor(
     seed=50
 )
 
-# XGBoost training
-regr.fit(train_data, train_target)
+regr.fit(train_data, dataset.train_target)
 
-#預測
+train_target = denorm(dataset.train_target, _min, _max)
+test_target = denorm(dataset.test_target, _min, _max)
 
-preds = regr.predict(train_data) 
-preds = (preds * (train_target_max - train_target_min)) + train_target_min 
-target = train_target_ori
-# target = target[:, 0]
+predict, target = list(), list()
+for i in range(0, len(test_data), 8):
+    logits = None
+    if i + 10 > len(test_data):
+        break
+    for j in range(11):
+        x, y = test_data[i + j], test_target[i + j]
+        if logits != None:
+            x[-1] = float(logits[0])
+        x = np.reshape(x, (1, timesteps * num_input))
+        logits = regr.predict(x)
+        if j > 2:
+            denorm_x = denorm(logits, _min, _max)
+            predict.append(denorm_x[0])
+            target.append(y)
 
-#評估模型
-print('\nTrain RMSE = ')
-print(math.sqrt(metrics.mean_squared_error(target, preds)))
+predict = np.array(predict, dtype=np.float32)
+target = np.array(target, dtype=np.float32)
+print (predict.shape)
+print (target.shape)
+test_loss = rmse(predict, target)
+print(math.sqrt(metrics.mean_squared_error(target, predict)))
 
-preds = regr.predict(test_data) 
-preds = (preds * (train_target_max - train_target_min)) + train_target_min 
-target = test_target_ori
-target = target[:, 0]
+# preds = regr.predict(test_data) 
+# preds = denorm(preds, _min, _max)
+# target = test_target[:, 0]
 
-#評估模型
-print('\nTest RMSE = ')
-print(math.sqrt(metrics.mean_squared_error(target, preds)))
+# #評估模型
+# print('\nTest RMSE = ')
+# print(math.sqrt(metrics.mean_squared_error(target, preds)))
 
 pd.DataFrame({
-    "predict": preds,
+    "predict": predict,
     "target": target
 }).plot()
 
