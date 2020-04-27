@@ -19,7 +19,7 @@ epochs        = 500
 ksize         = 2
 levels        = 5
 n_classes     = 1
-timesteps     = 24
+timesteps     = 1
 num_input     = 3
 global_step   = tf.Variable(0, trainable=False)
 l2_lambda     = 10

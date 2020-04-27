@@ -5,7 +5,6 @@ import os, math
 from matplotlib import pyplot as plt
 from utils import Dataset, denorm, rmse
 from sklearn import datasets, linear_model, metrics
-from sklearn.metrics import mean_squared_error, r2_score, make_scorer
 
 base_path = os.path.dirname(os.path.abspath(__file__))
 
@@ -41,6 +40,27 @@ train_target = denorm(dataset.train_target, _min, _max)
 test_target = denorm(dataset.test_target, _min, _max)
 
 predict, target = list(), list()
+for i in range(0, len(train_data), 8):
+    logits = None
+    if i + 10 > len(train_data):
+        break
+    for j in range(11):
+        x, y = train_data[i + j], train_target[i + j]
+        if logits != None:
+            x[-1] = float(logits[0])
+        x = np.reshape(x, (1, timesteps * num_input))
+        logits = regr.predict(x)
+        if j > 2:
+            denorm_x = denorm(logits, _min, _max)
+            predict.append(denorm_x[0])
+            target.append(y)
+
+predict = np.array(predict, dtype=np.float32)
+target = np.array(target, dtype=np.float32)
+train_loss = math.sqrt(metrics.mean_squared_error(target, predict))
+print("Train RMSE: {:.4f}".format(train_loss))
+
+predict, target = list(), list()
 for i in range(0, len(test_data), 8):
     logits = None
     if i + 10 > len(test_data):
@@ -58,18 +78,8 @@ for i in range(0, len(test_data), 8):
 
 predict = np.array(predict, dtype=np.float32)
 target = np.array(target, dtype=np.float32)
-print (predict.shape)
-print (target.shape)
-test_loss = rmse(predict, target)
-print(math.sqrt(metrics.mean_squared_error(target, predict)))
-
-# preds = regr.predict(test_data) 
-# preds = denorm(preds, _min, _max)
-# target = test_target[:, 0]
-
-# #評估模型
-# print('\nTest RMSE = ')
-# print(math.sqrt(metrics.mean_squared_error(target, preds)))
+test_loss = math.sqrt(metrics.mean_squared_error(target, predict))
+print("Test RMSE: {:.4f}".format(test_loss))
 
 pd.DataFrame({
     "predict": predict,
