@@ -10,25 +10,15 @@ base_path = os.path.dirname(os.path.abspath(__file__))
 
 input_rows = 24
 
-data_path = os.path.join(base_path, "data/1")
+data_path = os.path.join(base_path, "../data/1")
 
 train_data_df = pd.read_excel(os.path.join(data_path, "hour_ahead/train_in.xlsx"))
 train_target_df = pd.read_excel(os.path.join(data_path, "hour_ahead/train_out.xlsx"))
 test_data_df = pd.read_excel(os.path.join(data_path, "hour_ahead/test_in.xlsx"))
 test_target_df = pd.read_excel(os.path.join(data_path, "hour_ahead/test_out.xlsx"))
-train_target_max = 28.957
+train_target_max = 5.583
 train_target_min = 0
 
-
-
-## 直接每個 row 訓練
-
-# train_data = train_data_df.values
-# train_target = train_target_df.values
-# test_data = test_data_df.values
-# test_target = test_target_df.values
-
-##
 
 train_data_list = train_data_df.values
 test_data_list  = test_data_df.values
@@ -82,25 +72,25 @@ regr = xgb.XGBRegressor(
 )
 
 # XGBoost training
-regr.fit(train_data, train_target)
+regr.fit(np.array(train_data), np.array(train_target))
 
 #預測
 
-preds = regr.predict(train_data) 
+preds = regr.predict(np.array(train_data))
 preds = (preds * (train_target_max - train_target_min)) + train_target_min 
 target = train_target_ori
 # target = target[:, 0]
 
-#評估模型
 print('\nTrain RMSE = ')
 print(math.sqrt(metrics.mean_squared_error(target, preds)))
 
-preds = regr.predict(test_data) 
+#評估模型
+
+preds = regr.predict(np.array(test_data))
 preds = (preds * (train_target_max - train_target_min)) + train_target_min 
 target = test_target_ori
 target = target[:, 0]
 
-#評估模型
 print('\nTest RMSE = ')
 print(math.sqrt(metrics.mean_squared_error(target, preds)))
 
