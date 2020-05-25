@@ -1,7 +1,7 @@
 from matplotlib import pyplot as plt
 from tensorflow.contrib.eager.python import tfe
 from tcn import TCN
-from utils import Dataset, denorm, rmse
+from utils import Dataset, denorm, rmse, mape
 import os
 import pandas as pd
 import numpy as np
@@ -12,7 +12,7 @@ tf.enable_eager_execution()
 base_path = os.path.dirname(os.path.abspath(__file__))
 
 GPU           = 1
-batch_size    = 64
+batch_size    = 16
 hidden_units  = 16
 dropout       = 0.3
 epochs        = 50
@@ -91,11 +91,11 @@ with tf.device(f"/gpu:{GPU}"):
         test_predict = np.array(predict)
         test_target = np.array(target)
         test_loss = rmse(predict, target)
+        test_mape_loss = mape(predict, target)
         test_losses.append(test_loss.numpy())
 
-        print("Epoch " + str(epoch) + ", Minibatch Train Loss= {:.4f}, Test Loss= {:.4f}, LR: {:.5f}".format(train_loss, test_loss, optimizer._lr()))
+        print("Epoch " + str(epoch) + ", Minibatch Train Loss= {:.4f}, Test Loss= {:.4f}, MAPE= {:.4f}, LR= {:.5f}".format(train_loss, test_loss, mape(predict, target), optimizer._lr()))
         
-
     predict, target = list(), list()
     for i in range(0, len(dataset.train_data), 8):
         logits = None
@@ -120,7 +120,6 @@ with tf.device(f"/gpu:{GPU}"):
     target = np.array(target)
     train_loss = rmse(predict, target)
     print ("Train Loss: {:.4f}".format(train_loss))
-        
       
 if not os.path.exists(os.path.join(base_path, "Output")):
     os.mkdir(os.path.join(base_path, "Output"))

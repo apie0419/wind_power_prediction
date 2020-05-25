@@ -7,6 +7,10 @@ def rmse(x, y):
 
     return tf.sqrt(rm)
 
+def mape(x, y):
+    return tf.keras.losses.mean_absolute_percentage_error(y, x)
+    
+
 if __name__ == "__main__":
 
     tf.enable_eager_execution()
