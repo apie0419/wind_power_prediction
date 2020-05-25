@@ -1,7 +1,7 @@
 from matplotlib import pyplot as plt
 from tensorflow.contrib.eager.python import tfe
 from tcn import TCN
-from utils import Dataset, denorm, rmse
+from utils import Dataset, denorm, rmse, mape
 import os
 import pandas as pd
 import numpy as np
@@ -11,7 +11,7 @@ tf.enable_eager_execution()
 
 base_path = os.path.dirname(os.path.abspath(__file__))
 
-GPU           = 1
+GPU           = 0
 batch_size    = 64
 hidden_units  = 16
 dropout       = 0.3
@@ -68,87 +68,29 @@ with tf.device(f"/gpu:{GPU}"):
         train_loss = rmse(denorm_x, denorm_y)
         train_losses.append(train_loss.numpy())
         
-        # predict, target = list(), list()
-        # for i in range(0, len(dataset.test_data), 8):
-        #     logits = None
-        #     if i + 10 > len(dataset.test_data):
-        #         break
-        #     for j in range(11):
-        #         x, y = dataset.test_data[i + j], dataset.test_target[i + j]
-        #         if logits != None:
-        #             x[-1][-1] = float(logits.numpy()[0][0])
-        #         x = tf.convert_to_tensor(x, dtype=tf.float32)
-        #         x = tf.reshape(x, (1, timesteps, num_input))
-        #         y = tf.convert_to_tensor(y, dtype=tf.float32)
-                
-        #         logits = model(x, training=False)
-        #         if j > 2:
-        #             denorm_x = denorm(logits, _min, _max)
-        #             denorm_y = denorm(y, _min, _max)
-        #             predict.append(denorm_x.numpy()[0][0])
-        #             target.append(denorm_y.numpy())
-
-        
-        # test_predict = np.array(predict)
-        # test_target = np.array(target)
-        # test_loss = rmse(predict, target)
-        # test_losses.append(test_loss.numpy())
-
-        # print("Epoch " + str(epoch) + ", Minibatch Train Loss= {:.4f}, Test Loss= {:.4f}, LR: {:.5f}".format(train_loss, test_loss, optimizer._lr()))
         print("Epoch " + str(epoch) + ", Minibatch Train Loss= {:.4f} LR: {:.5f}".format(train_loss, optimizer._lr()))
-        
-        # logits = model(test_data, training=False)
-        # denorm_x = denorm(logits, _min, _max)
-        # denorm_y = denorm(test_target, _min, _max)
-        # test_loss = rmse(denorm_x, denorm_y)
-        # test_losses.append(test_loss.numpy())
-    # predict, target = list(), list()
-    # for i in range(0, len(dataset.train_data), 8):
-    #     logits = None
-    #     if i + 10 > len(dataset.train_data):
-    #         break
-    #     for j in range(11):
-    #         x, y = dataset.train_data[i + j], dataset.train_target[i + j]
-    #         if logits != None:
-    #             x[-1][-1] = float(logits.numpy()[0][0])
-    #         x = tf.convert_to_tensor(x, dtype=tf.float32)
-    #         x = tf.reshape(x, (1, timesteps, num_input))
-    #         y = tf.convert_to_tensor(y, dtype=tf.float32)
-            
-    #         logits = model(x, training=False)
-    #         if j > 2:
-    #             denorm_x = denorm(logits, _min, _max)
-    #             denorm_y = denorm(y, _min, _max)
-    #             predict.append(denorm_x.numpy()[0][0])
-    #             target.append(denorm_y.numpy())
-
-    # predict = np.array(predict)
-    # target = np.array(target)
-    # train_loss = rmse(predict, target)
-    # print ("Train Loss: {:.4f}".format(train_loss))
+          
     test_data, test_target = tf.convert_to_tensor(dataset.test_data, dtype=tf.float32), tf.convert_to_tensor(dataset.test_target, dtype=tf.float32)
     logits = model(test_data, training=False)
+    
     denorm_x = denorm(logits, _min, _max)
     denorm_y = denorm(test_target, _min, _max)
     test_loss = rmse(denorm_x, denorm_y)
+    test_mape_loss = mape(denorm_x, denorm_y)
     test_losses.append(test_loss.numpy())
         
       
 if not os.path.exists(os.path.join(base_path, "Output")):
     os.mkdir(os.path.join(base_path, "Output"))
 
-pd.DataFrame({
-    "train": train_losses,
-    "test": test_losses
-}).plot()
-
-plt.savefig(os.path.join(base_path, "Output/tcn_loss.png"))
 
 print("Optimization Finished!")
 
+print ("RMSE Loss: {:.4f}, MAPE Loss: {:.4f}".format(test_loss, test_mape_loss))
+
 pd.DataFrame({
-    "predict": test_predict,
-    "target": test_target
+    "predict": np.array(denorm_x).flatten(),
+    "target": np.array(denorm_y).flatten()
 }).plot()
 
 plt.savefig(os.path.join(base_path, "Output/tcn_evaluation.png"))
