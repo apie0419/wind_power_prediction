@@ -23,7 +23,7 @@ class Dataset(object):
 
         for i in range(len(self.train_data_raw) - (self.timesteps - 1)):
             for j in range(self.timesteps):
-                temp_data_row.append(list(self.train_data_raw[i + j][10:]))
+                temp_data_row.append(list(self.train_data_raw[i + j][4:]))
 
             train_data.append(temp_data_row)
             temp_data_row = list()
@@ -38,7 +38,7 @@ class Dataset(object):
         test_data, temp_data_row = list(), list()
         for i in range(len(self.test_data_raw) - (self.timesteps - 1)):
             for j in range(self.timesteps):
-                temp_data_row.append(list(self.test_data_raw[i + j][10:]))
+                temp_data_row.append(list(self.test_data_raw[i + j][4:]))
             test_data.append(temp_data_row)
             temp_data_row = list()
             
