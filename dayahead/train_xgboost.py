@@ -32,29 +32,11 @@ regr = xgb.XGBRegressor(
     reg_lambda=0.5,
     eval_metric='rmse',
     objective='reg:logistic',
-    subsample=0.8,
+    subsample=0.7,
     n_jobs=-1,
     seed=50
 )
 print ("Training...")
-
-param_grid = {
-    'gamma': [0, 0.05, 0.1, 0.15],
-    "min_child_weight": [3, 5, 10, 15],
-    "max_depth": [5, 10, 15, 20],
-    'reg_alpha': [0.3, 0.5, 0.7, 0.9],
-    'reg_lambda': [0.3, 0.5, 0.7, 0.9],
-    "n_estimators": [200, 500, 1000, 2000],
-    "subsample": [0.7, 0.8, 0.9, 1.]
-}
-
-regr = GridSearchCV(estimator=regr, param_grid=param_grid, n_jobs=-1, scoring="neg_root_mean_squared_error", cv=5)
-
-regr.fit(train_data, dataset.train_target)
-
-print ("Finish")
-print('Best Params:')
-print(regr.best_params_)
 
 train_target = denorm(dataset.train_target, _min, _max)
 test_target = denorm(dataset.test_target, _min, _max)
