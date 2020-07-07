@@ -1,7 +1,7 @@
 from matplotlib import pyplot as plt
 from tensorflow.contrib.eager.python import tfe
 from tcn import TCN
-from utils import Dataset, denorm, rmse, mape
+from utils import Dataset, denorm, rmse
 import os
 import pandas as pd
 import numpy as np
@@ -125,6 +125,8 @@ if not os.path.exists(os.path.join(base_path, "Output")):
     os.mkdir(os.path.join(base_path, "Output"))
 
 print("Optimization Finished!")
+
+model.save_weights(os.path.join(base_path, "Output/tcn_weight.ckpt"))
 
 print ("RMSE Loss: {:.2f}%".format(test_loss / _max * 100.))
 

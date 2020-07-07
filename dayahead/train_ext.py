@@ -20,32 +20,21 @@ _min, _max = dataset._min, dataset._max
 train_data = np.reshape(dataset.train_data, (-1, num_input * timesteps))
 test_data = np.reshape(dataset.test_data, (-1, num_input * timesteps))
 
-param_grid = {
-    'n_estimators': [500, 1000, 2000],
-    "max_features": [10, 15, 20],
-    "max_depth": [6, 10, 20],
-    "max_samples": [0.4, 0.6, 0.8]
-}
-
-
 model = ExtraTreesRegressor(
     n_estimators=2000,
     criterion= "mse",
-    max_depth=20,
+    max_features=20,
+    max_depth=15,
     warm_start=True,
-    max_samples=0.6,
+    max_samples=0.8,
     ccp_alpha=0,
     n_jobs=-1
 )
-# model = GridSearchCV(estimator=regr, param_grid=param_grid, n_jobs=8, scoring="neg_root_mean_squared_error")
-
 print("Training...")
 
 model.fit(train_data, dataset.train_target)
 
 print("Finish")
-# print('Best Params:')
-# print(model.best_params_)
 
 train_target = denorm(dataset.train_target, _min, _max)
 test_target = denorm(dataset.test_target, _min, _max)
