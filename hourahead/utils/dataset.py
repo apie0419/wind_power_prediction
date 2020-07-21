@@ -1,6 +1,9 @@
 import os
 import pandas as pd
 import numpy as np
+import torch
+
+from torch.utils.data.dataset import Dataset
 
 class Dataset(object):
     
@@ -43,7 +46,14 @@ class Dataset(object):
 
         return test_data, test_target
 
-    def append(self, dataset):
-        pass
     
-    
+class energyDataset(Dataset):
+    def __init__(self, data, target):
+        self.data = data
+        self.target = target
+        
+    def __getitem__(self, index):
+        return torch.from_numpy(self.data[index]).float(), torch.from_numpy(self.target[index]).float()
+        
+    def __len__(self):
+        return len(self.data)
